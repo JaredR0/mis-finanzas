@@ -1,6 +1,6 @@
 # Mis Finanzas
 
-**Versión 1.1.0** · historial en [CHANGELOG.md](CHANGELOG.md)
+**Versión 1.2.0** · historial en [CHANGELOG.md](CHANGELOG.md)
 
 App para iPhone y Android (React Native + Expo), que también se usa como app web instalable desde un enlace para administrar tu dinero: cuánto puedes gastar hasta tu próximo pago, meta de fin de mes, proyección de ahorro, evaluador de compras a cuotas, tarjetas de crédito con su corte y fecha de pago, apartados y metas de ahorro con fecha, calendario con ingresos y gastos a futuro, ingresos extra, deudas, gastos fijos, presupuesto con avisos, buscador, reportes, exportación a Excel (un libro por mes) y un widget opcional con lo que puedes gastar hoy.
 
@@ -21,7 +21,7 @@ Así no hace falta Mac, cable, modo desarrollador ni renovar cada 7 días. Para 
 - **Sin internet:** después de abrirla una vez, funciona sin conexión. Con internet, al abrirla toma sola la versión más nueva.
 - **Datos:** viven en el teléfono, cifrados con el PIN. Si borras los datos de Safari o quitas el ícono de inicio, se pierden: haz un **respaldo** de vez en cuando (Ajustes → Respaldo).
 - **PIN olvidado:** no se puede recuperar; "Olvidé mi PIN" borra todo para empezar de nuevo (y luego puedes restaurar un respaldo).
-- **Lo que no tiene la versión web:** Face ID (usa el PIN), recordatorios y widget.
+- **Lo que no tiene la versión web:** Face ID (usa el PIN), notificaciones propias y widget. Los avisos de pagos se ponen en el calendario del iPhone (ver *Recordatorios*).
 
 ### Publicar una versión nueva en GitHub Pages
 
@@ -71,7 +71,7 @@ Lo que el widget recibe y dónde queda guardado está en [SEGURIDAD.md](SEGURIDA
 | Comando | Qué hace |
 | --- | --- |
 | `npm run check` | Tipos + linter + pruebas, todo junto |
-| `npm test` | Pruebas de la lógica financiera, de las reglas de seguridad y del tema (173) |
+| `npm test` | Pruebas de la lógica financiera, de las reglas de seguridad y del tema (191) |
 | `npm run web:build` | Versión web para GitHub Pages en `dist-web/` |
 | `npm run typecheck` | Revisión de tipos |
 | `npm run lint` | Linter |
@@ -182,6 +182,15 @@ index.js       Punto de entrada (registra el widget de Android y arranca la app)
 ## Personalización
 
 En **Más → Apariencia** se elige el tema (automático, claro u oscuro), el color principal, qué pestañas van en la barra y en qué orden (hasta 5 entre Gastos, Tarjetas, Apartados, Deudas, Fijos, Reportes, Plan y Cuotas; Inicio y Más siempre están), y qué secciones se ven en Inicio. Las secciones que se quitan de la barra se abren desde Más.
+
+## Gastos fijos semanales
+
+En **Compromisos → Fijos → +** se elige **Mensual** (un día del mes), **Semanal** (un día de la semana, p. ej. gasolina cada lunes) o **Cada 14 días**. Los semanales se reservan y aparecen en Próximos pagos, Plan y Calendario cada vez que tocan (4 o 5 veces al mes); "Marcar como pagado" marca el cobro que toca. Un cobro semanal sin marcar deja de contarse como atrasado después de una semana.
+
+## Recordatorios
+
+- **App instalada (Android / iPhone nativo):** Ajustes → Recordatorios. Pagos: 3 días antes y el mismo día. **Aviso diario** a las 8:00 con cuánto puedes gastar hoy y qué vence; se recalcula cada vez que cambian tus datos.
+- **Versión web (iPhone):** una página web no puede mandar notificaciones a una hora sin un servidor, y un servidor significaría enviar tus datos por internet. En su lugar, **Ajustes → Recordatorios → Agregar al calendario** arma un archivo de calendario con tus pagos de los próximos 6 meses (con aviso un día antes y el mismo día a las 9:00) y un aviso diario a las 8:00 para abrir la app. El Calendario del iPhone avisa sin internet. Por defecto va **sin montos**. Si cambias tus pagos, borra los eventos anteriores y vuelve a agregarlos.
 
 ## Calendario
 

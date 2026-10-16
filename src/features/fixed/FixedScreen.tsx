@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { fixedActiveIn, fixedDateIn, fixedPayment } from '@/core/balances';
+import { describeFixedSchedule, fixedCostIn, fixedEvery, fixedOccurrencesInMonth, fixedPaymentFor, nextFixedDue } from '@/core/fixed';
 import { formatShort, monthKey, monthLabel, relativeDay } from '@/core/dates';
 import type { FixedExpense } from '@/core/types';
 import { useDb, useMoney, useToday } from '@/data/hooks';
@@ -38,14 +38,27 @@ export default function FixedScreen({ embedded }: { embedded?: boolean }) {
   const money = useMoney();
   const month = monthKey(today);
 
-  const active = db.fixedExpenses.filter((f) => fixedActiveIn(f, month)).sort((a, b) => a.day - b.day);
+  const txs = db.transactions;
+  const occurrences = (f: FixedExpense) => fixedOccurrencesInMonth(f, month);
+  const nextDue = (f: FixedExpense) => nextFixedDue(f, today, txs);
+  const active = db.fixedExpenses
+    .filter((f) => occurrences(f).length > 0)
+    .sort((a, b) => (nextDue(a)?.date ?? '9999').localeCompare(nextDue(b)?.date ?? '9999'));
   // En pausa, o fuera de sus fechas (cuotas que aún no empiezan o ya terminaron).
-  const paused = db.fixedExpenses.filter((f) => !fixedActiveIn(f, month));
-  const total = active.reduce((sum, f) => sum + f.amount, 0);
-  const paid = active.reduce((sum, f) => sum + (fixedPayment(f, month, db.transactions) ? f.amount : 0), 0);
+  const paused = db.fixedExpenses.filter((f) => occurrences(f).length === 0);
+  const total = active.reduce((sum, f) => sum + fixedCostIn(f, month), 0);
+  const paid = active.reduce((sum, f) => sum + occurrences(f).filter((o) => fixedPaymentFor(f, o, txs)).length * f.amount, 0);
+
+  /** Pagos de este gasto fijo que cuentan para este mes, del más nuevo al más viejo. */
+  const paymentsThisMonth = (f: FixedExpense) =>
+    occurrences(f)
+      .map((o) => fixedPaymentFor(f, o, txs))
+      .filter((tx): tx is NonNullable<typeof tx> => !!tx)
+      .reverse();
 
   const pay = (fixed: FixedExpense) => {
-    const draft = fixedPaymentDraft(fixed, today);
+    const due = nextDue(fixed);
+    const draft = due ? fixedPaymentDraft(fixed, today, due.key) : null;
     if (!draft) {
       notify('Falta la forma de pago', 'Edita este gasto fijo y elige con qué se paga.');
       return;
@@ -55,11 +68,11 @@ export default function FixedScreen({ embedded }: { embedded?: boolean }) {
   };
 
   const undo = (fixed: FixedExpense) => {
-    const tx = fixedPayment(fixed, month, db.transactions);
+    const tx = paymentsThisMonth(fixed)[0];
     if (!tx) return;
     confirm({
       title: `¿Quitar el pago de ${fixed.name}?`,
-      message: 'Se borra el gasto registrado este mes.',
+      message: fixedEvery(fixed) === 'mes' ? 'Se borra el gasto registrado este mes.' : `Se borra el pago del ${formatShort(tx.date)}.`,
       confirmLabel: 'Quitar pago',
       destructive: true,
       onConfirm: () => db.removeTx(tx.id),
@@ -67,12 +80,18 @@ export default function FixedScreen({ embedded }: { embedded?: boolean }) {
   };
 
   const row = (fixed: FixedExpense) => {
-    const date = fixedDateIn(fixed, month);
-    const done = !!fixedPayment(fixed, month, db.transactions);
-    const live = fixedActiveIn(fixed, month);
-    const overdue = !done && date < today;
+    const monthly = fixedEvery(fixed) === 'mes';
+    const occs = occurrences(fixed);
+    const live = occs.length > 0;
+    const paidCount = occs.filter((o) => fixedPaymentFor(fixed, o, txs)).length;
+    const due = live ? nextDue(fixed) : null;
+    // Mensual: listo cuando se pagó el de este mes. Semanal: muestra el próximo cobro.
+    const done = monthly ? live && paidCount === occs.length : !due;
+    const date = due?.date ?? occs[occs.length - 1]?.date ?? today;
+    const overdue = !!due && due.date < today;
     const category = db.categories.find((c) => c.id === fixed.categoryId);
     const source = db.cards.find((c) => c.id === fixed.cardId)?.name ?? db.accounts.find((a) => a.id === fixed.accountId)?.name ?? 'Sin forma de pago';
+    const when = monthly ? formatShort(date) : `${describeFixedSchedule(fixed)} · ${paidCount} de ${occs.length} este mes`;
     return (
       <Card key={fixed.id} style={styles.item}>
         <PressableScale onPress={() => router.push({ pathname: '/fijo', params: { id: fixed.id } })} style={styles.head}>
@@ -81,12 +100,17 @@ export default function FixedScreen({ embedded }: { embedded?: boolean }) {
             <Txt variant="bodyStrong" numberOfLines={1}>
               {fixed.name}
             </Txt>
-            <Txt variant="small" muted numberOfLines={1}>
-              {live ? `${formatShort(date)} · ${source}` : !fixed.active ? 'En pausa' : fixed.endMonth && month > fixed.endMonth ? 'Terminado' : 'Aún no empieza'}
+            <Txt variant="small" muted numberOfLines={2}>
+              {live ? `${when} · ${source}` : !fixed.active ? 'En pausa' : fixed.endMonth && month > fixed.endMonth ? 'Terminado' : 'Aún no empieza'}
             </Txt>
           </View>
           <View style={{ alignItems: 'flex-end', gap: 3 }}>
             <Money value={fixed.amount} />
+            {!monthly ? (
+              <Txt variant="small" muted>
+                {fixedEvery(fixed) === 'semana' ? 'por semana' : 'cada 2 semanas'}
+              </Txt>
+            ) : null}
             {!live ? null : done ? (
               <Tag label="Pagado" tone="positive" />
             ) : overdue ? (
@@ -97,31 +121,46 @@ export default function FixedScreen({ embedded }: { embedded?: boolean }) {
           </View>
         </PressableScale>
         {live ? (
-          done && fixed.auto ? (
-            <Txt variant="small" muted>
-              Se cobra solo: la app lo registró este mes.
-            </Txt>
-          ) : done ? (
-            <Button small variant="ghost" label="Quitar pago" onPress={() => undo(fixed)} />
-          ) : fixed.auto && !overdue ? (
-            <Txt variant="small" muted>
-              Se cobra solo el {formatShort(date)}.
-            </Txt>
-          ) : (
-            <Button small variant="soft" icon="checkmark" label="Marcar como pagado" onPress={() => pay(fixed)} />
-          )
+          <>
+            {done && fixed.auto ? (
+              <Txt variant="small" muted>
+                Se cobra solo: la app lo registró {monthly ? 'este mes' : 'esta vez'}.
+              </Txt>
+            ) : done ? null : fixed.auto && !overdue ? (
+              <Txt variant="small" muted>
+                Se cobra solo el {formatShort(date)}.
+              </Txt>
+            ) : (
+              <Button
+                small
+                variant="soft"
+                icon="checkmark"
+                label={monthly ? 'Marcar como pagado' : `Marcar el del ${formatShort(date)} como pagado`}
+                onPress={() => pay(fixed)}
+              />
+            )}
+            {paidCount > 0 && !fixed.auto ? (
+              <Button small variant="ghost" label={monthly ? 'Quitar pago' : 'Quitar el último pago'} onPress={() => undo(fixed)} />
+            ) : null}
+          </>
         ) : null}
       </Card>
     );
   };
 
   return (
-    <Screen title="Gastos fijos" subtitle={embedded ? `Lo que pagas cada mes · ${monthLabel(month)}` : monthLabel(month)} tabs back={!inBar} embedded={embedded} right={<IconButton icon="add" label="Nuevo gasto fijo" onPress={() => router.push('/fijo')} />}>
+    <Screen
+      title="Gastos fijos"
+      subtitle={embedded ? `Lo que pagas cada mes o cada semana · ${monthLabel(month)}` : monthLabel(month)}
+      tabs
+      back={!inBar}
+      embedded={embedded}
+      right={<IconButton icon="add" label="Nuevo gasto fijo" onPress={() => router.push('/fijo')} />}>
       {db.fixedExpenses.length === 0 ? (
         <EmptyState
           icon="repeat"
           title="Sin gastos fijos"
-          message="Agrega lo que pagas cada mes (renta, internet, teléfono, suscripciones) y la app lo reserva antes de decirte cuánto puedes gastar."
+          message="Agrega lo que pagas cada mes o cada semana (renta, internet, suscripciones, gasolina) y la app lo reserva antes de decirte cuánto puedes gastar."
           action="Agregar gasto fijo"
           onAction={() => router.push('/fijo')}
         />

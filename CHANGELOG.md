@@ -1,5 +1,11 @@
 # Historial de versiones
 
+## 1.2.0 — 16 de octubre de 2026
+
+- **Gastos fijos semanales y cada 14 días** (p. ej. gasolina cada lunes): se eligen en el gasto fijo (Mensual / Semanal / Cada 14 días). Cuentan cada vez que tocan en lo libre para gastar, Próximos pagos, Plan y Calendario; "Marcar como pagado" marca el cobro que toca y "Se cobra solo" registra cada semana.
+- **Aviso diario en la app instalada:** cada mañana a las 8:00, cuánto puedes gastar hoy y qué vence.
+- **Recordatorios en el calendario del teléfono** (Ajustes → Recordatorios → Agregar al calendario): pagos de los próximos 6 meses con aviso un día antes y el mismo día, y en la versión web un aviso diario para abrir la app. Sin montos por defecto.
+
 ## 1.1.0 — 15 de octubre de 2026
 
 - **Versión web para iPhone sin Mac:** la app se abre desde https://jaredr0.github.io/mis-finanzas/ y se agrega a la pantalla de inicio con Safari (Compartir → Agregar a inicio). No caduca, no necesita cable ni modo desarrollador, y se comparte mandando el enlace.

@@ -13,7 +13,7 @@
 export class NetworkBlockedError extends Error {
   constructor(what: string) {
     super(`Red bloqueada: Mis Finanzas no se conecta a internet (${what}).`);
-    this.name = "NetworkBlockedError";
+    this.name = 'NetworkBlockedError';
   }
 }
 
@@ -55,11 +55,11 @@ export function installNetworkGuard(target: NetworkGlobals): void {
     }
   };
 
-  lock("fetch", () => Promise.reject(refuse("fetch")));
-  lock("XMLHttpRequest", blockedClass("XMLHttpRequest"));
-  lock("WebSocket", blockedClass("WebSocket"));
-  lock("EventSource", blockedClass("EventSource"));
-  if (target.navigator && typeof target.navigator === "object") {
+  lock('fetch', () => Promise.reject(refuse('fetch')));
+  lock('XMLHttpRequest', blockedClass('XMLHttpRequest'));
+  lock('WebSocket', blockedClass('WebSocket'));
+  lock('EventSource', blockedClass('EventSource'));
+  if (target.navigator && typeof target.navigator === 'object') {
     try {
       target.navigator.sendBeacon = () => {
         attempts++;

@@ -108,10 +108,10 @@ export default function CalendarScreen() {
     db.addTx({ type: 'ingreso', amount: extra.amount, date: today, note: extra.name, accountId, categoryId: db.categories.find((c) => c.key === 'otros_ingresos')?.id, extraId: extra.id, extraPeriod: monthKey(event.date), source: 'manual' });
   };
 
-  /** Marca como pagado el gasto fijo (o la cuota) de este mes. */
+  /** Marca como pagado ese cobro del gasto fijo (o la cuota). */
   const payFixed = (event: CalendarEvent) => {
     const fixed = db.fixedExpenses.find((f) => f.id === event.refId);
-    const draft = fixed ? fixedPaymentDraft(fixed, today) : null;
+    const draft = fixed ? fixedPaymentDraft(fixed, today, event.period) : null;
     if (!draft) return;
     haptic.success();
     db.addTx(draft);
@@ -128,7 +128,7 @@ export default function CalendarScreen() {
       case 'extra':
         return eventMonth <= current ? { label: 'Ya lo recibí', run: () => receiveExtra(event) } : null;
       case 'fijo':
-        return eventMonth === current ? { label: 'Marcar como pagado', run: () => payFixed(event) } : null;
+        return eventMonth === current || event.date <= today ? { label: 'Marcar como pagado', run: () => payFixed(event) } : null;
       case 'planeado':
         return eventMonth <= current ? { label: 'Ya lo pagué', run: () => pay(event) } : null;
       case 'tarjeta':

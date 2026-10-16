@@ -1,6 +1,7 @@
-import { accountBalances, debtRemaining, envelopeBalances, fixedActiveIn, fixedPayment, pendingPayday } from './balances';
+import { accountBalances, debtRemaining, envelopeBalances, pendingPayday } from './balances';
 import { cardStatus } from './creditCard';
-import { daysInMonth, diffDays, monthEnd, monthKey, monthShort, parts, shiftMonthKey } from './dates';
+import { daysInMonth, diffDays, monthEnd, monthKey, monthShort, monthStart, parts, shiftMonthKey } from './dates';
+import { fixedCostIn, fixedOccurrences, fixedPaymentFor, overdueFrom } from './fixed';
 import { extraIncomeIn, extraPendingIn } from './extraIncome';
 import { monthlyPayCount, payFrequency, paydaysIn } from './payCycle';
 import { plannedIn, plannedPendingIn } from './planned';
@@ -46,7 +47,7 @@ function incomeOf(db: Database, key: string): Cents {
 
 /** Suma de gastos fijos y cuotas que se cobran en un mes. `exclude` deja fuera uno (para evaluar una cuota). */
 export function fixedIn(db: Database, key: string, exclude?: ID): Cents {
-  return db.fixedExpenses.reduce((total, f) => total + (f.id !== exclude && fixedActiveIn(f, key) ? f.amount : 0), 0);
+  return db.fixedExpenses.reduce((total, f) => total + (f.id !== exclude ? fixedCostIn(f, key) : 0), 0);
 }
 
 export interface Baseline {
@@ -190,7 +191,8 @@ export function monthEndOutlook(db: Database, today: ISODate): MonthEnd {
 
   let fixedLeft = 0;
   for (const fixed of db.fixedExpenses) {
-    if (fixedActiveIn(fixed, key) && !fixedPayment(fixed, key, db.transactions)) fixedLeft += fixed.amount;
+    const from = overdueFrom(fixed, today) > monthStart(key) ? overdueFrom(fixed, today) : monthStart(key);
+    for (const o of fixedOccurrences(fixed, from, monthEnd(key))) if (!fixedPaymentFor(fixed, o, db.transactions)) fixedLeft += fixed.amount;
   }
   let debtsLeft = 0;
   for (const debt of db.debts) {

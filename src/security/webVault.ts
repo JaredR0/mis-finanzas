@@ -1,5 +1,5 @@
-import { createPinVault, type VaultStore, webDerive } from "./pinVault";
-import { requestPin } from "./pinRequest";
+import { createPinVault, type VaultStore, webDerive } from './pinVault';
+import { requestPin } from './pinRequest';
 
 /**
  * La bóveda del PIN de la versión web, guardada en el almacenamiento del
@@ -12,23 +12,22 @@ const localStore: VaultStore = {
   remove: (name) => globalThis.localStorage?.removeItem(name),
 };
 
-const randomBytes = (count: number): Uint8Array =>
-  globalThis.crypto.getRandomValues(new Uint8Array(count));
+const randomBytes = (count: number): Uint8Array => globalThis.crypto.getRandomValues(new Uint8Array(count));
 
 export const vault = createPinVault(localStore, webDerive, randomBytes);
 
 /** Pide el PIN actual y luego uno nuevo; la llave de los datos no cambia. */
 export async function changePin(): Promise<boolean> {
   let key: Uint8Array | null = null;
-  const current = await requestPin("verificar", {
-    title: "PIN actual",
-    reason: "Para cambiarlo, primero escribe tu PIN de ahora.",
+  const current = await requestPin('verificar', {
+    title: 'PIN actual',
+    reason: 'Para cambiarlo, primero escribe tu PIN de ahora.',
     cancellable: true,
     check: async (pin) => (key = await vault.unwrap(pin)) !== null,
   });
   if (!current || !key) return false;
-  const next = await requestPin("crear", {
-    title: "PIN nuevo",
+  const next = await requestPin('crear', {
+    title: 'PIN nuevo',
     cancellable: true,
   });
   if (!next) return false;
@@ -43,7 +42,7 @@ export function eraseEverything(): void {
     const names: string[] = [];
     for (let i = 0; i < storage.length; i++) {
       const name = storage.key(i);
-      if (name && name.startsWith("mis-finanzas")) names.push(name);
+      if (name && name.startsWith('mis-finanzas')) names.push(name);
     }
     names.forEach((name) => storage.removeItem(name));
   }

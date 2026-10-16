@@ -1,8 +1,9 @@
 import { cardObligations, cardStatus } from './creditCard';
-import { dayInMonth, diffDays, monthKey, parts, shiftMonth, shiftMonthKey } from './dates';
+import { addDays, diffDays, monthKey, shiftMonthKey } from './dates';
+import { fixedOccurrences, fixedPaymentFor, overdueFrom } from './fixed';
 import { nextPayday, payFrequency, payPeriod, type PayPeriod } from './payCycle';
 import { plannedOccurrences } from './planned';
-import type { Cents, Database, Debt, FixedExpense, ID, ISODate, Transaction } from './types';
+import type { Cents, Database, Debt, ID, ISODate, Transaction } from './types';
 
 /** Saldos y obligaciones: todo se deriva de los movimientos. */
 
@@ -76,24 +77,7 @@ export function debtTotals(db: Database): { owe: Cents; owed: Cents } {
   return { owe, owed };
 }
 
-/** Fecha de un gasto fijo en un mes ('AAAA-MM'). */
-export function fixedDateIn(fixed: FixedExpense, key: string): ISODate {
-  const [y, m] = key.split('-').map(Number);
-  return dayInMonth(y, m, fixed.day);
-}
-
-/** true si ese gasto fijo se cobra en ese mes (activo y dentro de sus fechas, si tiene). */
-export function fixedActiveIn(fixed: FixedExpense, key: string): boolean {
-  if (!fixed.active) return false;
-  if (fixed.startMonth && key < fixed.startMonth) return false;
-  if (fixed.endMonth && key > fixed.endMonth) return false;
-  return true;
-}
-
-/** Movimiento que pagó ese gasto fijo en ese mes, si existe. */
-export function fixedPayment(fixed: FixedExpense, key: string, txs: Transaction[]): Transaction | undefined {
-  return txs.find((tx) => tx.fixedId === fixed.id && monthKey(tx.date) === key);
-}
+export { fixedActiveIn, fixedDateIn, fixedPayment } from './fixed';
 
 export type UpcomingKind = 'tarjeta' | 'fijo' | 'deuda' | 'planeado';
 
@@ -137,21 +121,16 @@ export function upcoming(db: Database, today: ISODate, horizonDays = 45): Upcomi
     }
   }
 
-  const { y, m } = parts(today);
-  const months = [0, 1, 2].map((n) => {
-    const mm = shiftMonth(y, m, n);
-    return `${mm.y}-${String(mm.m).padStart(2, '0')}`;
-  });
   for (const fixed of db.fixedExpenses) {
-    for (const key of months) {
-      if (!fixedActiveIn(fixed, key) || fixedPayment(fixed, key, db.transactions)) continue;
+    for (const o of fixedOccurrences(fixed, overdueFrom(fixed, today), addDays(today, horizonDays))) {
+      if (fixedPaymentFor(fixed, o, db.transactions)) continue;
       push({
-        key: `fijo-${fixed.id}-${key}`,
+        key: `fijo-${fixed.id}-${o.key}`,
         kind: 'fijo',
         refId: fixed.id,
         title: fixed.name,
         subtitle: fixed.cardId ? 'Gasto fijo · se carga a tarjeta' : 'Gasto fijo',
-        date: fixedDateIn(fixed, key),
+        date: o.date,
         amount: fixed.amount,
         estimate: false,
         fromAccounts: !fixed.cardId,

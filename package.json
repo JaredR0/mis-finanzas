@@ -1,7 +1,7 @@
 {
   "name": "mis-finanzas",
   "main": "index.js",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "dependencies": {
     "@expo/ui": "~57.0.22",
     "@expo/vector-icons": "^15.1.1",

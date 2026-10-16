@@ -1,4 +1,5 @@
-import { debtRemaining, envelopeBalances, fixedActiveIn, fixedDateIn, fixedPayment } from './balances';
+import { debtRemaining, envelopeBalances } from './balances';
+import { fixedOccurrencesInMonth, fixedPaymentFor } from './fixed';
 import { cardObligations } from './creditCard';
 import { daysInMonth, iso, monthKey, weekday } from './dates';
 import { extraDateIn, extraDueIn, extraReceipt } from './extraIncome';
@@ -30,6 +31,8 @@ export interface CalendarEvent {
   /** Monto aún no definitivo (corte de tarjeta sin cerrar). */
   estimate: boolean;
   refId?: ID;
+  /** Gasto fijo: qué cobro es ('AAAA-MM' o la fecha si es semanal). */
+  period?: string;
 }
 
 export interface CalendarDay {
@@ -76,9 +79,10 @@ export function calendarMonth(db: Database, key: string, today: ISODate): Calend
   }
 
   for (const fixed of db.fixedExpenses) {
-    if (!fixedActiveIn(fixed, key)) continue;
-    const done = !!fixedPayment(fixed, key, db.transactions);
-    add({ id: `fijo-${fixed.id}`, date: fixedDateIn(fixed, key), kind: 'fijo', title: fixed.name, amount: fixed.amount, flow: 'out', done, estimate: false, refId: fixed.id });
+    for (const o of fixedOccurrencesInMonth(fixed, key)) {
+      const done = !!fixedPaymentFor(fixed, o, db.transactions);
+      add({ id: `fijo-${fixed.id}-${o.key}`, date: o.date, kind: 'fijo', title: fixed.name, amount: fixed.amount, flow: 'out', done, estimate: false, refId: fixed.id, period: o.key });
+    }
   }
 
   for (const planned of db.plannedExpenses) {

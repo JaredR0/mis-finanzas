@@ -1,13 +1,13 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { type ReactNode, useEffect, useRef, useState } from "react";
-import { AppState, Platform, StyleSheet, View } from "react-native";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { AppState, Platform, StyleSheet, View } from 'react-native';
 
-import { flushStorage } from "@/data/storage";
-import { useStore } from "@/data/store";
-import { Button, space, Txt, useColors } from "@/ui";
+import { flushStorage } from '@/data/storage';
+import { useStore } from '@/data/store';
+import { Button, space, Txt, useColors } from '@/ui';
 
-import { authenticate } from "./lock";
-import { setScreenShield } from "./screenShield";
+import { authenticate } from './lock';
+import { setScreenShield } from './screenShield';
 
 /** Tiempo fuera de la app después del cual se vuelve a pedir Face ID / código. */
 export const RELOCK_AFTER_MS = 60_000;
@@ -16,7 +16,7 @@ export const RELOCK_AFTER_MS = 60_000;
  * En la versión web el PIN ya se pidió para abrir los datos, así que no se pide
  * otra vez al arrancar; sí al volver después de un rato fuera (siempre, no es opcional).
  */
-const WEB = Platform.OS === "web";
+const WEB = Platform.OS === 'web';
 
 /**
  * Envuelve toda la app:
@@ -41,7 +41,7 @@ export function AppLock({ children }: { children: ReactNode }) {
     if (asking.current) return;
     asking.current = true;
     promptPending.current = false;
-    authenticate("Desbloquear Mis Finanzas").then((ok) => {
+    authenticate('Desbloquear Mis Finanzas').then((ok) => {
       asking.current = false;
       if (ok) setLocked(false);
     });
@@ -57,22 +57,18 @@ export function AppLock({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Al abrir: si ya está en primer plano, pide identificación de una vez.
-    if (promptPending.current && AppState.currentState === "active")
-      unlockRef.current();
+    if (promptPending.current && AppState.currentState === 'active') unlockRef.current();
 
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "background") {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'background') {
         if (leftAt.current === null) leftAt.current = Date.now();
         void flushStorage();
-      } else if (state === "inactive") {
+      } else if (state === 'inactive') {
         void flushStorage();
-      } else if (state === "active") {
+      } else if (state === 'active') {
         const away = leftAt.current === null ? 0 : Date.now() - leftAt.current;
         leftAt.current = null;
-        if (
-          (WEB || useStore.getState().settings.lockEnabled) &&
-          away >= RELOCK_AFTER_MS
-        ) {
+        if ((WEB || useStore.getState().settings.lockEnabled) && away >= RELOCK_AFTER_MS) {
           setLocked(true);
           promptPending.current = true;
         }
@@ -89,17 +85,13 @@ export function AppLock({ children }: { children: ReactNode }) {
     <View style={styles.flex}>
       <View
         style={styles.flex}
-        pointerEvents={showLock ? "none" : "auto"}
+        pointerEvents={showLock ? 'none' : 'auto'}
         accessibilityElementsHidden={showLock}
-        importantForAccessibility={showLock ? "no-hide-descendants" : "auto"}
-      >
+        importantForAccessibility={showLock ? 'no-hide-descendants' : 'auto'}>
         {children}
       </View>
       {showLock ? (
-        <View
-          style={[styles.cover, { backgroundColor: colors.bg }]}
-          accessibilityViewIsModal
-        >
+        <View style={[styles.cover, { backgroundColor: colors.bg }]} accessibilityViewIsModal>
           <View style={[styles.logo, { backgroundColor: colors.primary }]}>
             <Ionicons name="lock-closed" size={36} color={colors.onPrimary} />
           </View>
@@ -109,12 +101,7 @@ export function AppLock({ children }: { children: ReactNode }) {
           <Txt muted center>
             Bloqueada para proteger tu información.
           </Txt>
-          <Button
-            label="Desbloquear"
-            icon="lock-open-outline"
-            onPress={unlock}
-            style={styles.button}
-          />
+          <Button label="Desbloquear" icon="lock-open-outline" onPress={unlock} style={styles.button} />
         </View>
       ) : null}
     </View>
@@ -124,15 +111,15 @@ export function AppLock({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   cover: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
     left: 0,
     zIndex: 1000,
     elevation: 1000,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: space.md,
     padding: space.xxl,
   },
@@ -140,9 +127,9 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: space.sm,
   },
-  button: { marginTop: space.lg, alignSelf: "stretch" },
+  button: { marginTop: space.lg, alignSelf: 'stretch' },
 });

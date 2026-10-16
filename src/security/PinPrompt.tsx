@@ -1,27 +1,14 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, confirm, haptic, space, Txt, useColors } from "@/ui";
+import { Button, confirm, haptic, space, Txt, useColors } from '@/ui';
 
-import { PIN_LENGTH, isWeakPin } from "./pinVault";
-import { finishPinRequest, type PinRequest, usePinRequest } from "./pinRequest";
-import { eraseEverything, vault } from "./webVault";
+import { PIN_LENGTH, isWeakPin } from './pinVault';
+import { finishPinRequest, type PinRequest, usePinRequest } from './pinRequest';
+import { eraseEverything, vault } from './webVault';
 
-const KEYS = [
-  "1",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "",
-  "0",
-  "borrar",
-] as const;
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'borrar'] as const;
 
 /**
  * Pantalla del PIN (versión web). Tapa todo mientras haya una petición:
@@ -35,27 +22,16 @@ export function PinPrompt() {
 
 function PinPad({ request }: { request: PinRequest }) {
   const colors = useColors();
-  const [pin, setPin] = useState("");
+  const [pin, setPin] = useState('');
   const [first, setFirst] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [wait, setWait] = useState(() => vault.waitLeft());
   const busyRef = useRef(false);
 
-  const creating = request.kind === "crear";
-  const title =
-    request.title ??
-    (creating
-      ? first
-        ? "Repite tu PIN"
-        : "Crea tu PIN"
-      : request.kind === "abrir"
-        ? "Escribe tu PIN"
-        : "Confirma que eres tú");
-  const shownTitle =
-    creating && first && request.title
-      ? `Repite el ${request.title.toLowerCase()}`
-      : title;
+  const creating = request.kind === 'crear';
+  const title = request.title ?? (creating ? (first ? 'Repite tu PIN' : 'Crea tu PIN') : request.kind === 'abrir' ? 'Escribe tu PIN' : 'Confirma que eres tú');
+  const shownTitle = creating && first && request.title ? `Repite el ${request.title.toLowerCase()}` : title;
 
   // Cuenta regresiva si hubo demasiados intentos fallidos.
   useEffect(() => {
@@ -68,20 +44,20 @@ function PinPad({ request }: { request: PinRequest }) {
     if (creating) {
       if (!first) {
         if (isWeakPin(value)) {
-          setError("Ese PIN es muy fácil de adivinar. Usa otro.");
-          setPin("");
+          setError('Ese PIN es muy fácil de adivinar. Usa otro.');
+          setPin('');
           haptic.warning();
           return;
         }
         setFirst(value);
-        setPin("");
+        setPin('');
         setError(null);
         return;
       }
       if (value !== first) {
-        setError("No coinciden. Empieza otra vez.");
+        setError('No coinciden. Empieza otra vez.');
         setFirst(null);
-        setPin("");
+        setPin('');
         haptic.warning();
         return;
       }
@@ -104,15 +80,15 @@ function PinPad({ request }: { request: PinRequest }) {
       return;
     }
     haptic.warning();
-    setPin("");
+    setPin('');
     const left = vault.waitLeft();
     setWait(left);
-    setError(left > 0 ? "Demasiados intentos." : "PIN incorrecto.");
+    setError(left > 0 ? 'Demasiados intentos.' : 'PIN incorrecto.');
   };
 
   const press = (key: string) => {
     if (busyRef.current || wait > 0) return;
-    if (key === "borrar") {
+    if (key === 'borrar') {
       setPin((p) => p.slice(0, -1));
       return;
     }
@@ -136,18 +112,18 @@ function PinPad({ request }: { request: PinRequest }) {
     if (!doc) return;
     const onKey = (event: KeyboardEvent) => {
       if (/^\d$/.test(event.key)) pressRef.current(event.key);
-      else if (event.key === "Backspace") pressRef.current("borrar");
+      else if (event.key === 'Backspace') pressRef.current('borrar');
     };
-    doc.addEventListener("keydown", onKey);
-    return () => doc.removeEventListener("keydown", onKey);
+    doc.addEventListener('keydown', onKey);
+    return () => doc.removeEventListener('keydown', onKey);
   }, []);
 
   const forgot = () =>
     confirm({
-      title: "¿Olvidaste tu PIN?",
+      title: '¿Olvidaste tu PIN?',
       message:
-        "Tus datos están cifrados con ese PIN y no hay forma de recuperarlos sin él. Puedes borrar todo y empezar de nuevo (y luego restaurar un respaldo si tienes uno).",
-      confirmLabel: "Borrar todo",
+        'Tus datos están cifrados con ese PIN y no hay forma de recuperarlos sin él. Puedes borrar todo y empezar de nuevo (y luego restaurar un respaldo si tienes uno).',
+      confirmLabel: 'Borrar todo',
       destructive: true,
       onConfirm: eraseEverything,
     });
@@ -156,24 +132,17 @@ function PinPad({ request }: { request: PinRequest }) {
     request.reason ??
     (creating
       ? first
-        ? "Escríbelo otra vez para confirmar."
+        ? 'Escríbelo otra vez para confirmar.'
         : `Elige ${PIN_LENGTH} números. Con este PIN se cifran tus datos en este teléfono. Si lo olvidas no se pueden recuperar.`
-      : request.kind === "abrir"
-        ? "Tus datos están cifrados en este teléfono."
+      : request.kind === 'abrir'
+        ? 'Tus datos están cifrados en este teléfono.'
         : undefined);
 
   return (
-    <View
-      style={[styles.cover, { backgroundColor: colors.bg }]}
-      accessibilityViewIsModal
-    >
+    <View style={[styles.cover, { backgroundColor: colors.bg }]} accessibilityViewIsModal>
       <View style={styles.inner}>
         <View style={[styles.logo, { backgroundColor: colors.primary }]}>
-          <Ionicons
-            name={creating ? "key" : "lock-closed"}
-            size={30}
-            color={colors.onPrimary}
-          />
+          <Ionicons name={creating ? 'key' : 'lock-closed'} size={30} color={colors.onPrimary} />
         </View>
         <Txt variant="title" center>
           {shownTitle}
@@ -184,10 +153,7 @@ function PinPad({ request }: { request: PinRequest }) {
           </Txt>
         ) : null}
 
-        <View
-          style={styles.dots}
-          accessibilityLabel={`${pin.length} de ${PIN_LENGTH} números`}
-        >
+        <View style={styles.dots} accessibilityLabel={`${pin.length} de ${PIN_LENGTH} números`}>
           {Array.from({ length: PIN_LENGTH }, (_, i) => (
             <View
               key={i}
@@ -195,12 +161,7 @@ function PinPad({ request }: { request: PinRequest }) {
                 styles.dot,
                 {
                   borderColor: error ? colors.negative : colors.primary,
-                  backgroundColor:
-                    i < pin.length
-                      ? error
-                        ? colors.negative
-                        : colors.primary
-                      : "transparent",
+                  backgroundColor: i < pin.length ? (error ? colors.negative : colors.primary) : 'transparent',
                 },
               ]}
             />
@@ -223,29 +184,24 @@ function PinPad({ request }: { request: PinRequest }) {
 
         <View style={styles.pad}>
           {KEYS.map((key, i) =>
-            key === "" ? (
+            key === '' ? (
               <View key={i} style={styles.key} />
             ) : (
               <Pressable
                 key={i}
                 onPress={() => press(key)}
                 accessibilityRole="button"
-                accessibilityLabel={key === "borrar" ? "Borrar" : key}
+                accessibilityLabel={key === 'borrar' ? 'Borrar' : key}
                 style={({ pressed }) => [
                   styles.key,
-                  key !== "borrar" && {
+                  key !== 'borrar' && {
                     backgroundColor: pressed ? colors.primarySoft : colors.card,
                     borderColor: colors.border,
                     borderWidth: StyleSheet.hairlineWidth,
                   },
-                ]}
-              >
-                {key === "borrar" ? (
-                  <Ionicons
-                    name="backspace-outline"
-                    size={26}
-                    color={colors.text}
-                  />
+                ]}>
+                {key === 'borrar' ? (
+                  <Ionicons name="backspace-outline" size={26} color={colors.text} />
                 ) : (
                   <Txt variant="title" center>
                     {key}
@@ -257,12 +213,8 @@ function PinPad({ request }: { request: PinRequest }) {
         </View>
 
         {request.cancellable ? (
-          <Button
-            variant="ghost"
-            label="Cancelar"
-            onPress={() => finishPinRequest(null)}
-          />
-        ) : request.kind === "abrir" ? (
+          <Button variant="ghost" label="Cancelar" onPress={() => finishPinRequest(null)} />
+        ) : request.kind === 'abrir' ? (
           <Button variant="ghost" label="Olvidé mi PIN" onPress={forgot} />
         ) : null}
       </View>
@@ -272,40 +224,40 @@ function PinPad({ request }: { request: PinRequest }) {
 
 const styles = StyleSheet.create({
   cover: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
     left: 0,
     zIndex: 2000,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: space.xl,
   },
-  inner: { width: "100%", maxWidth: 360, alignItems: "center", gap: space.md },
+  inner: { width: '100%', maxWidth: 360, alignItems: 'center', gap: space.md },
   logo: {
     width: 64,
     height: 64,
     borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: space.xs,
   },
-  dots: { flexDirection: "row", gap: space.lg, marginTop: space.md },
+  dots: { flexDirection: 'row', gap: space.lg, marginTop: space.md },
   dot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2 },
-  status: { minHeight: 24, justifyContent: "center" },
+  status: { minHeight: 24, justifyContent: 'center' },
   pad: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     width: 288,
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
     rowGap: space.md,
   },
   key: {
     width: 84,
     height: 64,
     borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 
-import { debtTotals, fixedActiveIn, fixedPayment } from '@/core/balances';
+import { debtTotals } from '@/core/balances';
+import { fixedOccurrences, fixedPaymentFor, overdueFrom } from '@/core/fixed';
 import { useDb, useMoney, useToday } from '@/data/hooks';
 import { useStorageHealth } from '@/data/storage';
-import { monthKey } from '@/core/dates';
+import { monthEnd, monthKey } from '@/core/dates';
 import { monthEndOutlook } from '@/core/forecast';
 import { APP_VERSION } from '@/services/appInfo';
 import { Card, FadeIn, type IconName, Row, Screen, SectionTitle, space, Txt, useColors } from '@/ui';
@@ -24,7 +25,7 @@ export default function MoreScreen() {
   const health = useStorageHealth();
   const totals = debtTotals(db);
   const month = monthKey(today);
-  const pendingFixed = db.fixedExpenses.filter((f) => fixedActiveIn(f, month) && !fixedPayment(f, month, db.transactions)).length;
+  const pendingFixed = db.fixedExpenses.filter((f) => fixedOccurrences(f, overdueFrom(f, today), monthEnd(month)).some((o) => !fixedPaymentFor(f, o, db.transactions))).length;
 
   const outlook = monthEndOutlook(db, today);
   const goal =

@@ -59,9 +59,9 @@ Archivos: `src/security/AppLock.tsx`, `lock.ts`, `screenShield.ts`.
 
 ### Lo que sale
 
-Solo dos cosas, y solo con un toque del usuario: **Exportar datos a Excel** y **Crear respaldo**. Ambas usan la hoja de compartir del sistema (el usuario elige el destino) y la copia temporal se borra del teléfono al terminar.
+Solo tres cosas, y solo con un toque del usuario: **Exportar datos a Excel**, **Crear respaldo** y **Agregar al calendario** (recordatorios). Usan la hoja de compartir del sistema o el Calendario (el usuario elige el destino) y la copia temporal se borra del teléfono al terminar.
 
-**Importante:** esos dos archivos salen **sin cifrar**. Quien los abra puede leer todo. Hay que guardarlos en un lugar privado.
+**Importante:** esos archivos salen **sin cifrar**. Quien los abra puede leer lo que contienen. El de calendario solo lleva nombres de pagos y fechas (y montos solo si eliges "Con montos"); una vez en el Calendario, se sincroniza según la cuenta de ese calendario (iCloud, Google), fuera del control de la app.
 
 ### Widget (opcional)
 
@@ -85,7 +85,7 @@ La versión web es la misma app (mismo código y mismas reglas), servida por Git
 | Llave de cifrado | Llavero del teléfono (Keychain / Keystore) | Envuelta con tu PIN; el PIN no se guarda en ningún lado |
 | Bloqueo | Face ID / huella / código (opcional) | PIN de 6 números, siempre: al abrir y al volver después de un minuto |
 | Dónde viven los datos | Almacenamiento privado de la app | Almacenamiento del navegador para esa dirección, en ese teléfono |
-| Recordatorios y widget | Sí | No |
+| Notificaciones y widget | Sí (incluye aviso diario de cuánto puedes gastar) | No: los avisos se ponen en el Calendario del iPhone con un archivo .ics |
 
 **Cómo se protege:**
 

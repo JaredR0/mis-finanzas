@@ -2,7 +2,7 @@ import { normalizeMerchant, type TxDraft } from './txDraft';
 import { DEFAULT_ACCENT, defaultSettings, emptyDatabase } from './defaults';
 import { normalizeHomeSections, normalizeTabs } from './layout';
 import { isValidISO } from './dates';
-import type { CollectionKey, CreditCard, Database, Envelope, ExtraIncome, ID, InstallmentPlan, ISODate, PlannedExpense, Transaction } from './types';
+import type { CollectionKey, CreditCard, Database, Envelope, ExtraIncome, FixedExpense, ID, InstallmentPlan, ISODate, PlannedExpense, Transaction } from './types';
 
 /**
  * Cambios sobre la base de datos como funciones puras: reciben una base y
@@ -155,6 +155,7 @@ export function sanitizeDatabase(value: unknown, today: ISODate, now: number): D
   if (!isValidISO(settings.startedOn)) settings.startedOn = today;
   if (!Number.isFinite(settings.usdRate) || settings.usdRate <= 0) settings.usdRate = base.settings.usdRate;
   settings.lockEnabled = settings.lockEnabled === true;
+  settings.dailyReminder = settings.dailyReminder === true;
   settings.shieldScreen = settings.shieldScreen !== false;
   // La captura automática de mensajes se quitó: se borran sus restos de datos antiguos.
   delete (settings as Record<string, unknown>).captureKey;
@@ -185,7 +186,12 @@ export function sanitizeDatabase(value: unknown, today: ISODate, now: number): D
     envelopes: list<Envelope>(raw.envelopes, base.envelopes).map((e) => (validPlan(e.plan) ? e : { ...e, plan: undefined })),
     debtGroups: list(raw.debtGroups, base.debtGroups),
     debts: list(raw.debts, []),
-    fixedExpenses: list(raw.fixedExpenses, []),
+    // Semanal o cada dos semanas necesita una fecha de referencia válida; si no, se trata como mensual.
+    fixedExpenses: list<FixedExpense>(raw.fixedExpenses, []).map((f) =>
+      (f.every === 'semana' || f.every === 'dos_semanas') && typeof f.anchor === 'string' && isValidISO(f.anchor)
+        ? f
+        : { ...f, every: undefined, anchor: undefined },
+    ),
     extraIncomes: list<ExtraIncome>(raw.extraIncomes, []).filter(
       (x) => Number.isFinite(x.amount) && x.amount > 0 && typeof x.date === 'string' && isValidISO(x.date) && ['unica', 'mensual', 'anual'].includes(x.frequency),
     ),

@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { envelopeBalances, upcoming } from '@/core/balances';
+import { dailyTips } from '@/core/dailyTip';
 import { addDays, formatShort, parts } from '@/core/dates';
 import { formatMoney } from '@/core/money';
 import { planProgress, takenOutOfPlan } from '@/core/savingsGoal';
@@ -14,6 +15,7 @@ import type { Database, ISODate } from '@/core/types';
  */
 
 const HOUR = 9;
+const DAILY_HOUR = 8;
 const MAX_REMINDERS = 40; // iOS permite 64 pendientes por app
 
 Notifications.setNotificationHandler({
@@ -39,7 +41,7 @@ export async function requestReminderPermission(): Promise<boolean> {
 
 export async function syncReminders(db: Database, today: ISODate): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync();
-  if (!db.settings.remindersOn) return;
+  if (!db.settings.remindersOn && !db.settings.dailyReminder) return;
   if (!(await Notifications.getPermissionsAsync()).granted) return;
 
   if (Platform.OS === 'android') {
@@ -51,6 +53,22 @@ export async function syncReminders(db: Database, today: ISODate): Promise<void>
 
   const now = Date.now();
   let scheduled = 0;
+
+  // Cada mañana: cuánto puedes gastar ese día (se recalcula cada vez que cambian los datos).
+  if (db.settings.dailyReminder) {
+    for (const tip of dailyTips(db, today)) {
+      const { y, m, d } = parts(tip.date);
+      const when = new Date(y, m - 1, d, DAILY_HOUR, 0, 0);
+      if (when.getTime() <= now) continue;
+      await Notifications.scheduleNotificationAsync({
+        content: { title: tip.title, body: tip.body },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: when, channelId: 'pagos' },
+      });
+      scheduled++;
+    }
+  }
+  if (!db.settings.remindersOn) return;
+
   for (const item of upcoming(db, today, 60)) {
     if (item.estimate) continue; // solo montos firmes
     const amount = formatMoney(item.amount, { symbol: db.settings.currency });

@@ -1,11 +1,11 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore } from 'react';
 
 /**
  * Puente entre la lógica que necesita un PIN (abrir los datos, desbloquear,
  * cambiar el PIN) y la pantalla que lo pide (PinPrompt). Solo se usa en la versión web.
  */
 
-export type PinKind = "crear" | "abrir" | "verificar";
+export type PinKind = 'crear' | 'abrir' | 'verificar';
 
 export interface PinRequest {
   id: number;

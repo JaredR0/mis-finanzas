@@ -1,4 +1,4 @@
-import { isSealed, KEY_BYTES, NONCE_BYTES, open, seal } from "./seal";
+import { isSealed, KEY_BYTES, NONCE_BYTES, open, seal } from './seal';
 
 /**
  * Guardado cifrado, independiente de la plataforma.
@@ -28,7 +28,7 @@ export interface KeyStore {
   save(key: Uint8Array): Promise<void>;
 }
 
-export type StorageMode = "cifrado" | "sin_cifrar" | "desconocido";
+export type StorageMode = 'cifrado' | 'sin_cifrar' | 'desconocido';
 
 export interface StorageHealth {
   mode: StorageMode;
@@ -47,19 +47,13 @@ interface Options {
   onHealth?: (health: StorageHealth) => void;
 }
 
-export const UNREADABLE_SUFFIX = ":ilegible";
-const SELF_TEST = "prueba ✓ ñ 123";
+export const UNREADABLE_SUFFIX = ':ilegible';
+const SELF_TEST = 'prueba ✓ ñ 123';
 
-export function createSecureStorage({
-  backend,
-  keys,
-  randomBytes,
-  debounceMs = 150,
-  onHealth,
-}: Options) {
+export function createSecureStorage({ backend, keys, randomBytes, debounceMs = 150, onHealth }: Options) {
   let key: Uint8Array | null = null;
   let health: StorageHealth = {
-    mode: "desconocido",
+    mode: 'desconocido',
     error: null,
     setAside: false,
   };
@@ -74,35 +68,29 @@ export function createSecureStorage({
 
   const works = (candidate: Uint8Array): boolean => {
     try {
-      return (
-        open(
-          seal(SELF_TEST, candidate, randomBytes(NONCE_BYTES)),
-          candidate,
-        ) === SELF_TEST
-      );
+      return open(seal(SELF_TEST, candidate, randomBytes(NONCE_BYTES)), candidate) === SELF_TEST;
     } catch {
       return false;
     }
   };
 
-  type Readiness = "lista" | "sin_llavero" | "llave_perdida" | "cifrado_falla";
+  type Readiness = 'lista' | 'sin_llavero' | 'llave_perdida' | 'cifrado_falla';
 
   /** Deja lista la llave, o dice por qué no se puede cifrar en este dispositivo. */
   async function prepare(hasSealedData: boolean): Promise<Readiness> {
-    if (key) return "lista";
-    if (!(await keys.available())) return "sin_llavero";
+    if (key) return 'lista';
+    if (!(await keys.available())) return 'sin_llavero';
     let candidate = await keys.load();
     if (!candidate) {
-      if (hasSealedData) return "llave_perdida";
+      if (hasSealedData) return 'llave_perdida';
       candidate = randomBytes(KEY_BYTES);
-      if (candidate.length !== KEY_BYTES || !works(candidate))
-        return "cifrado_falla";
+      if (candidate.length !== KEY_BYTES || !works(candidate)) return 'cifrado_falla';
       await keys.save(candidate);
     } else if (candidate.length !== KEY_BYTES || !works(candidate)) {
-      return "cifrado_falla";
+      return 'cifrado_falla';
     }
     key = candidate;
-    return "lista";
+    return 'lista';
   }
 
   async function getItem(name: string): Promise<string | null> {
@@ -110,27 +98,26 @@ export function createSecureStorage({
       const raw = await backend.getItem(name);
       const sealed = raw !== null && isSealed(raw);
       const readiness = await prepare(sealed);
-      const canEncrypt = readiness === "lista";
+      const canEncrypt = readiness === 'lista';
 
       if (raw === null) {
-        report({ mode: canEncrypt ? "cifrado" : "sin_cifrar", error: null });
+        report({ mode: canEncrypt ? 'cifrado' : 'sin_cifrar', error: null });
         return null;
       }
       if (!sealed) {
         // Datos de una versión anterior (o de un dispositivo sin llavero): se cifran ya.
-        if (key)
-          await backend.setItem(name, seal(raw, key, randomBytes(NONCE_BYTES)));
-        report({ mode: canEncrypt ? "cifrado" : "sin_cifrar", error: null });
+        if (key) await backend.setItem(name, seal(raw, key, randomBytes(NONCE_BYTES)));
+        report({ mode: canEncrypt ? 'cifrado' : 'sin_cifrar', error: null });
         return raw;
       }
-      if (readiness === "llave_perdida") {
+      if (readiness === 'llave_perdida') {
         // Datos cifrados cuya llave ya no existe (p. ej. restaurados en otro teléfono): no se
         // pueden abrir. Se apartan sin borrarlos y la app empieza de cero; el respaldo los recupera.
         await backend.setItem(name + UNREADABLE_SUFFIX, raw);
         await backend.removeItem(name);
         const fresh = await prepare(false);
         report({
-          mode: fresh === "lista" ? "cifrado" : "sin_cifrar",
+          mode: fresh === 'lista' ? 'cifrado' : 'sin_cifrar',
           error: null,
           setAside: true,
         });
@@ -138,31 +125,21 @@ export function createSecureStorage({
       }
       if (!key) {
         throw new Error(
-          readiness === "sin_llavero"
-            ? "los datos están cifrados y este dispositivo no tiene llavero seguro"
-            : "el cifrado no funciona en este dispositivo",
+          readiness === 'sin_llavero' ? 'los datos están cifrados y este dispositivo no tiene llavero seguro' : 'el cifrado no funciona en este dispositivo',
         );
       }
       const plain = open(raw, key);
-      report({ mode: "cifrado", error: null });
+      report({ mode: 'cifrado', error: null });
       return plain;
     } catch (cause) {
-      const detail =
-        cause instanceof Error ? cause.message : "error desconocido";
+      const detail = cause instanceof Error ? cause.message : 'error desconocido';
       report({ error: `No se pudieron abrir tus datos (${detail}).` });
       throw cause;
     }
   }
 
   function write(name: string, value: string): Promise<void> {
-    writing = writing
-      .catch(() => {})
-      .then(() =>
-        backend.setItem(
-          name,
-          key ? seal(value, key, randomBytes(NONCE_BYTES)) : value,
-        ),
-      );
+    writing = writing.catch(() => {}).then(() => backend.setItem(name, key ? seal(value, key, randomBytes(NONCE_BYTES)) : value));
     return writing;
   }
 
@@ -170,7 +147,7 @@ export function createSecureStorage({
   function flush(): Promise<void> {
     if (timer) clearTimeout(timer);
     timer = null;
-    if (health.error || health.mode === "desconocido") {
+    if (health.error || health.mode === 'desconocido') {
       pending.clear();
       return writing;
     }
@@ -182,7 +159,7 @@ export function createSecureStorage({
 
   function setItem(name: string, value: string): void {
     // Nunca se escribe encima de datos que no se pudieron leer.
-    if (health.error || health.mode === "desconocido") return;
+    if (health.error || health.mode === 'desconocido') return;
     pending.set(name, value);
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => void flush(), debounceMs);

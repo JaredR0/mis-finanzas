@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mis Finanzas",
     "slug": "mis-finanzas",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "misfinanzas",
@@ -46,7 +46,7 @@
           }
         ]
       },
-      "buildNumber": "7"
+      "buildNumber": "8"
     },
     "android": {
       "adaptiveIcon": {
@@ -64,7 +64,7 @@
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.USE_FINGERPRINT"
       ],
-      "versionCode": 7
+      "versionCode": 8
     },
     "web": {
       "output": "single",

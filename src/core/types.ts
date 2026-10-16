@@ -150,8 +150,12 @@ export interface FixedExpense {
   id: ID;
   name: string;
   amount: Cents;
-  /** Día del mes en que se paga. */
+  /** Día del mes en que se paga (si es mensual). */
   day: number;
+  /** Cada cuánto: 'mes' (por defecto), 'semana' o 'dos_semanas'. */
+  every?: 'mes' | 'semana' | 'dos_semanas';
+  /** Semanal o cada dos semanas: una fecha en que toca pagar (de ahí salen el día de la semana y el ritmo). */
+  anchor?: ISODate;
   categoryId?: ID;
   /** Se paga con una cuenta o con una tarjeta (una de las dos). */
   accountId?: ID;
@@ -211,6 +215,8 @@ export interface Transaction {
   debtId?: ID;
   /** Gasto fijo que originó este movimiento. */
   fixedId?: ID;
+  /** Cobro del gasto fijo que paga: 'AAAA-MM' (mensual) o la fecha del cobro (semanal). */
+  fixedPeriod?: string;
   /** Día de pago al que corresponde este ingreso (evita registrar dos veces la quincena). */
   payDate?: ISODate;
   /** Ingreso extra que originó este movimiento y el mes ('AAAA-MM') al que corresponde. */
@@ -251,6 +257,8 @@ export interface Settings {
   onboarded: boolean;
   startedOn: ISODate;
   remindersOn: boolean;
+  /** Aviso cada mañana con cuánto puedes gastar hoy (app instalada). */
+  dailyReminder?: boolean;
   /** Comercio (normalizado) → categoría, aprendido de las correcciones del usuario. */
   merchantRules: Record<string, ID>;
   /** Pedir Face ID / huella / código al abrir la app. */

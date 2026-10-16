@@ -1,39 +1,28 @@
-import "@/security/install";
+import '@/security/install';
 
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import { Appearance, Platform } from "react-native";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { Appearance, Platform } from 'react-native';
 
-import { autoFixedDrafts } from "@/core/autoFixed";
-import { widgetSnapshot } from "@/core/widget";
-import { useHydrated, useToday } from "@/data/hooks";
-import { useStorageHealth } from "@/data/storage";
-import { pickDatabase, useStore } from "@/data/store";
-import { UndoBar } from "@/features/shared/UndoBar";
-import { AppLock } from "@/security/AppLock";
-import { PinPrompt } from "@/security/PinPrompt";
-import { StorageErrorScreen } from "@/security/StorageErrorScreen";
-import { syncReminders } from "@/services/reminders";
-import { useColors, useIsDark } from "@/ui";
-import { syncWidget, widgetAvailable } from "@/widget";
+import { autoFixedDrafts } from '@/core/autoFixed';
+import { widgetSnapshot } from '@/core/widget';
+import { useHydrated, useToday } from '@/data/hooks';
+import { useStorageHealth } from '@/data/storage';
+import { pickDatabase, useStore } from '@/data/store';
+import { UndoBar } from '@/features/shared/UndoBar';
+import { AppLock } from '@/security/AppLock';
+import { PinPrompt } from '@/security/PinPrompt';
+import { StorageErrorScreen } from '@/security/StorageErrorScreen';
+import { syncReminders } from '@/services/reminders';
+import { useColors, useIsDark } from '@/ui';
+import { syncWidget, widgetAvailable } from '@/widget';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /** Formularios: suben desde abajo, dentro de la misma ventana (así el bloqueo siempre los cubre). */
-const FORMS = [
-  "movimiento",
-  "tarjeta",
-  "apartado",
-  "deuda",
-  "fijo",
-  "cuenta",
-  "categoria",
-  "cuota",
-  "ingreso-extra",
-  "gasto-planeado",
-] as const;
+const FORMS = ['movimiento', 'tarjeta', 'apartado', 'deuda', 'fijo', 'cuenta', 'categoria', 'cuota', 'ingreso-extra', 'gasto-planeado'] as const;
 
 export default function RootLayout() {
   const isDark = useIsDark();
@@ -52,13 +41,7 @@ export default function RootLayout() {
   const themeChoice = db.settings.theme;
   useEffect(() => {
     try {
-      Appearance.setColorScheme(
-        themeChoice === "claro"
-          ? "light"
-          : themeChoice === "oscuro"
-            ? "dark"
-            : "unspecified",
-      );
+      Appearance.setColorScheme(themeChoice === 'claro' ? 'light' : themeChoice === 'oscuro' ? 'dark' : 'unspecified');
     } catch {
       // Si el sistema no lo admite, la app igual usa sus propios colores.
     }
@@ -76,11 +59,7 @@ export default function RootLayout() {
   // Gastos fijos que se cobran solos: se registran al llegar su día.
   useEffect(() => {
     if (!hydrated) return;
-    for (const draft of autoFixedDrafts(
-      pickDatabase(useStore.getState()),
-      today,
-    ))
-      useStore.getState().addTx(draft);
+    for (const draft of autoFixedDrafts(pickDatabase(useStore.getState()), today)) useStore.getState().addTx(draft);
   }, [hydrated, today, db.fixedExpenses, db.transactions]);
 
   // Le pasa al widget solo los números que muestra; si está apagado, se los borra.
@@ -88,23 +67,15 @@ export default function RootLayout() {
   useEffect(() => {
     if (!hydrated || !widgetAvailable) return;
     const timer = setTimeout(() => {
-      syncWidget(
-        widgetOn ? widgetSnapshot(pickDatabase(db), today) : null,
-      ).catch(() => {});
+      syncWidget(widgetOn ? widgetSnapshot(pickDatabase(db), today) : null).catch(() => {});
     }, 800);
     return () => clearTimeout(timer);
   }, [hydrated, db, today, widgetOn]);
 
   // Versión web: la pantalla del PIN puede aparecer antes de abrir los datos (para descifrarlos).
-  const pinLayer = Platform.OS === "web" ? <PinPrompt /> : null;
+  const pinLayer = Platform.OS === 'web' ? <PinPrompt /> : null;
 
-  if (failed)
-    return (
-      <StorageErrorScreen
-        message={health.error ?? ""}
-        onRetry={() => void useStore.persist.rehydrate()}
-      />
-    );
+  if (failed) return <StorageErrorScreen message={health.error ?? ''} onRetry={() => void useStore.persist.rehydrate()} />;
   if (!hydrated) return pinLayer;
 
   const base = isDark ? DarkTheme : DefaultTheme;
@@ -122,25 +93,17 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={theme}>
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <AppLock>
         <Stack
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: colors.bg },
-          }}
-        >
+          }}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="bienvenida"
-            options={{ animation: "fade", gestureEnabled: false }}
-          />
+          <Stack.Screen name="bienvenida" options={{ animation: 'fade', gestureEnabled: false }} />
           {FORMS.map((name) => (
-            <Stack.Screen
-              key={name}
-              name={name}
-              options={{ animation: "slide_from_bottom" }}
-            />
+            <Stack.Screen key={name} name={name} options={{ animation: 'slide_from_bottom' }} />
           ))}
         </Stack>
         <UndoBar />
